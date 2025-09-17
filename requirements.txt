@@ -1,0 +1,8 @@
+pandas
+numpy
+scikit-learn
+xgboost
+jupyter
+jupyter_http_over_ws
+python-dotenv
+mlserve-sdk
