@@ -2,9 +2,6 @@
 
 # 🧠 MLServe.com Python SDK
 
-*Notebooks*
----
-
 Official Python SDK for interacting with the **MLServe.com API** — a cloud platform for serving, monitoring, and collaborating on machine learning models.
 
 This SDK provides a simple and secure interface to manage your models, users, datasets, and experiments — directly from Python or integrated applications.
