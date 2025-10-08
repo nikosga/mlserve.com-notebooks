@@ -207,6 +207,84 @@ print(latest)
 
 ---
 
+## 📊 Model Monitoring & Performance Tracking
+
+MLServe.com makes it easy to **monitor deployed models in production**, track **performance over time**, and **detect data quality issues** — all through the SDK.
+
+### 🔹 Retrieve recent online metrics
+
+Get recent model metrics (e.g., accuracy, rewards) aggregated over a time window.
+
+```python
+metrics = client.get_online_metrics(
+    name="my_model",
+    version="v2",
+    window_hours=168,  # past 7 days
+    as_dataframe=True
+)
+print(metrics)
+```
+
+Returns a single-row **pandas DataFrame** (if `as_dataframe=True`) or a dictionary with unpacked metrics.
+
+---
+
+### 🔹 Track model evolution across versions
+
+Compare metrics and deltas between model versions to see performance improvements or regressions over time.
+
+```python
+evolution = client.get_model_evolution(
+    name="my_model",
+    as_dataframe=True
+)
+evolution.head()
+```
+
+Returns a DataFrame with:
+- Each row representing a model version  
+- Columns for `metrics`, `deltas`, and `deployed_at` timestamps  
+
+---
+
+### 🔹 Get hourly metrics for a specific version
+
+Fetch fine-grained endpoint performance data like requests, predictions, latency percentiles and throughput for a given model version.
+
+```python
+hourly = client.get_metrics(
+    name="my_model",
+    version="v2",
+    hours=48,
+    as_dataframe=True
+)
+hourly.tail()
+```
+
+Useful for **trend visualization** and **alerting pipelines**.
+
+---
+
+### 🔹 Check data quality (drift, missingness, outliers)
+
+Monitor input data to ensure model stability and detect upstream data issues.
+
+```python
+dq = client.get_data_quality(
+    name="my_model",
+    version="v2",
+    hours=24,
+    as_dataframe=True
+)
+```
+
+Returns a dictionary of DataFrames for:
+- `missingness`: feature-wise missing value ratios  
+- `drift`: distribution shifts vs. training data  
+- `outliers`: detected anomalies in input features  
+
+---
+
 ## 🔐 Google OAuth Authentication (Optional)
 
 ```python
@@ -238,6 +316,10 @@ After the user grants access, MLServe.com will handle the token exchange.
 | `list_models()`                               | List all deployed models                  |
 | `get_latest_version(model_name)`              | Get the latest deployed version           |
 | `google_login()`                              | Login with Google OAuth                   |
+| `get_online_metrics(name, version)`           | Retrieve recent performance metrics       |
+| `get_model_evolution(name)`                   | Retrieve performance evolution            |
+| `get_metrics(name, version, hours)`           | Fetch hourly metrics for a given model    |
+| `get_data_quality(name, version)`.            | Retrieve data quality metrics             |
 
 ---
 
@@ -273,13 +355,6 @@ print(preds)
 
 ---
 
-## 🧾 License
-
-This SDK is licensed under the **Apache Software License**.
-© 2025 MLServe.com — All rights reserved.
-
----
-
 ## Data & Privacy Disclaimer
 
 - The MLServe.com SDK sends data to the MLServe.com API for predictions, registration, feedback, and other services.
@@ -295,4 +370,11 @@ This SDK is licensed under the **Apache Software License**.
 ## 💬 Support
 
 * 📧 Email: [support@mlserve.com](mailto:support@mlserve.com)
+---
+
+## 🧾 License
+
+This SDK is licensed under the **Apache Software License**.
+© 2025 MLServe.com — All rights reserved.
+
 ---
