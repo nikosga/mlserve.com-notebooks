@@ -367,15 +367,61 @@ print(preds)
 
 ---
 
-## Data & Privacy Disclaimer
+## 🔒 Data & Privacy Policy
+**1 Data Processing and Storage**
 
-- The MLServe.com SDK sends data to the MLServe.com API for predictions, registration, feedback, and other services.
-- Data transmitted may include input features, user identifiers (emails, IDs), and feedback information.
-- MLServe.com may store, process, and log any data sent via the SDK for analytics, model improvement, or operational purposes.
-- Users are responsible for ensuring compliance with applicable privacy laws and regulations (e.g., GDPR, HIPAA).
-- By using this SDK, you acknowledge that MLServe.com **does not guarantee the privacy or confidentiality** of transmitted data.
-- All actions using the SDK are performed **at your own risk**, and MLServe.com is **not liable** for any misuse, data loss, or unintended exposure.
-- It is recommended to anonymize sensitive data before sending it through the SDK.
+MLServe.com processes data transmitted through the SDK solely for the purpose of providing and improving its services, including model prediction, monitoring, and user management functionalities.
+
+MLServe.com does not permanently store user input data submitted for prediction. Such data may be temporarily cached (for up to five minutes) in an in-memory store (Redis) to optimize performance and prevent redundant processing. After this period, cached data are automatically deleted and are not recoverable.
+
+**2 Request and Performance Logging**
+
+For operational purposes, MLServe.com maintains limited system logs containing aggregate request information such as request counts, processing latency, and error metrics. These logs do not contain user inputs or personally identifiable prediction data.
+
+**3 Feedback Data**
+
+If users provide feedback (e.g., true labels, performance scores, or reward values), MLServe.com may store this information to evaluate and improve model accuracy. Feedback data are not linked to the original prediction inputs, ensuring that they cannot be used to reconstruct user data.
+
+**4 Security and Encryption**
+
+All communication between the SDK and the MLServe.com API occurs over encrypted HTTPS (TLS) connections.
+Requests are routed through a Cloudflare Tunnel to provide additional protection against unauthorized access, DDoS attacks, and network-level threats.
+
+User credentials are securely managed:
+
+* Passwords are encrypted at rest in the database using industry-standard hashing algorithms.
+
+* Access tokens are securely generated and verified during each authenticated request.
+
+* Administrative access to user or system data is restricted and logged.
+
+**5 Data Retention**
+
+MLServe.com retains only data necessary for:
+
+* Account and authentication management;
+
+* Performance and usage analytics;
+
+* Feedback analysis for model improvement.
+
+All temporary or cache-based data are automatically removed after their operational purpose has expired.
+
+**6 User Responsibilities and Compliance**
+
+Users are responsible for ensuring that their use of MLServe.com complies with all applicable privacy and data protection regulations, including but not limited to GDPR, HIPAA, and relevant local laws.
+Users should avoid transmitting personally identifiable or sensitive data unless required and should ensure such data are anonymized wherever possible.
+
+**7 Liability and Disclaimer**
+
+MLServe.com employs reasonable technical and organizational safeguards to protect user data. However, no system can be guaranteed to be completely secure.
+By using the SDK and API, you acknowledge and accept that:
+
+* MLServe.com is not liable for any damages, data loss, or unauthorized access resulting from user misconfiguration or misuse of the SDK;
+
+* You are using the SDK and API at your own risk;
+
+* You remain solely responsible for the data you transmit through the platform.
 
 ---
 
