@@ -210,10 +210,13 @@ print(latest)
 
 MLServe.com currently supports deployment for models built using the following frameworks:
 
-| Framework / Library | Supported Objects               | Notes                                                                      |
-| ------------------- | ------------------------------- | -------------------------------------------------------------------------- |
-| **scikit-learn**    | `BaseEstimator`, `Pipeline`     | Full support for all classifiers, regressors, transformers, and pipelines. |
-| **XGBoost**         | `XGBClassifier`, `XGBRegressor` | Includes automatic conversion and serialization for efficient serving.     |
+| Framework / Library        | Supported Objects                         | Notes                                                                      |
+| -------------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
+| **scikit-learn**           | `BaseEstimator`, `Pipeline`               | Full support for all classifiers, regressors, transformers, and pipelines. |
+| **XGBoost**                | `XGBClassifier`, `XGBRegressor`           | Includes automatic conversion and serialization for efficient serving.     |
+| **LightGBM (sklearn API)** | `LGBMClassifier`, `LGBMRegressor`         | Supports sklearn API models.                                               |
+| **CatBoost (sklearn API)** | `CatBoostClassifier`, `CatBoostRegressor` | Supports sklearn API models                                                |
+
 
 Support for additional frameworks is coming soon.
 
