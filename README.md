@@ -204,21 +204,39 @@ print(models)
 latest = client.get_latest_version("my_model")
 print(latest)
 ```
+
 ---
 
 ## 🧩 Supported Model Types
 
 MLServe.com currently supports deployment for models built using the following frameworks:
 
-| Framework / Library        | Supported Objects                         | Notes                                                                      |
-| -------------------------- | ----------------------------------------- | -------------------------------------------------------------------------- |
-| **scikit-learn**           | `BaseEstimator`, `Pipeline`               | Full support for all classifiers, regressors, transformers, and pipelines. |
-| **XGBoost**                | `XGBClassifier`, `XGBRegressor`           | Includes automatic conversion and serialization for efficient serving.     |
-| **LightGBM (sklearn API)** | `LGBMClassifier`, `LGBMRegressor`         | Supports sklearn API models.                                               |
-| **CatBoost (sklearn API)** | `CatBoostClassifier`, `CatBoostRegressor` | Supports sklearn API models                                                |
+| Framework / Library        | Supported Objects                         | Notes                                                                                               |
+| -------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| **scikit-learn**           | `BaseEstimator`, `Pipeline`               | Full support for all classifiers, regressors, transformers, and pipelines.                          |
+| **XGBoost**                | `XGBClassifier`, `XGBRegressor`           | Includes automatic conversion and serialization for efficient serving.                              |
+| **LightGBM (sklearn API)** | `LGBMClassifier`, `LGBMRegressor`         | Supports sklearn API models.                                                                        |
+| **CatBoost (sklearn API)** | `CatBoostClassifier`, `CatBoostRegressor` | Supports sklearn API models.                                                                        |
+| **Custom Causal Models**   | Any ML model with covariates and actions  | Deploy causal models built using standard ML libraries — no need for specialized causal frameworks. |
 
+### 🧠 Causal Model Support
 
-Support for additional frameworks is coming soon.
+MLServe.com also supports deployment of **causal models** — even when they are built using standard ML estimators instead of specialized causal libraries like `econml` or `causalml`.
+
+Simply train your model to estimate outcomes as a function of covariates and actions/interventions:
+
+$$
+\hat{y} = f(X, A)
+$$
+
+where:
+
+* ( X ) = features / covariates
+* ( A ) = treatment, action, or intervention
+
+Once deployed, **MLServe.com automatically estimates treatment effects and determines the next best action** internally.
+At inference time, you only need to provide the input features — and MLServe.com will return both the treatment effects and the recommended action.
+
 
 ---
 
