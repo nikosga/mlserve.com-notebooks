@@ -211,13 +211,16 @@ print(latest)
 
 MLServe.com currently supports deployment for models built using the following frameworks:
 
-| Framework / Library        | Supported Objects                         | Notes                                                                                               |
-| -------------------------- | ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **scikit-learn**           | `BaseEstimator`, `Pipeline`               | Full support for all classifiers, regressors, transformers, and pipelines.                          |
-| **XGBoost**                | `XGBClassifier`, `XGBRegressor`           | Includes automatic conversion and serialization for efficient serving.                              |
-| **LightGBM (sklearn API)** | `LGBMClassifier`, `LGBMRegressor`         | Supports sklearn API models.                                                                        |
-| **CatBoost (sklearn API)** | `CatBoostClassifier`, `CatBoostRegressor` | Supports sklearn API models.                                                                        |
-| **Custom Causal Models**   | Any ML model with covariates and actions  | Deploy causal models built using standard ML libraries — no need for specialized causal frameworks. |
+| Framework / Library        | Supported Objects                                                                             | Notes                                                                                                 |
+| -------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **scikit-learn**           | `BaseEstimator`, `Pipeline`                                                                   | Full support for all classifiers, regressors, transformers, and pipelines.                            |
+| **XGBoost**                | `XGBClassifier`, `XGBRegressor`                                                               | Includes automatic conversion and serialization for efficient serving.                                |
+| **LightGBM (sklearn API)** | `LGBMClassifier`, `LGBMRegressor`                                                             | Supports sklearn API models for classification and regression tasks.                                  |
+| **CatBoost (sklearn API)** | `CatBoostClassifier`, `CatBoostRegressor`                                                     | Supports sklearn API models.                                                                          |
+| **Custom Causal Models**   | Any ML model with covariates and actions                                                      | Deploy causal models built using standard ML libraries — no need for specialized causal frameworks.   |
+| **Recommender Systems**    | Any sklearn-compatible model returning `predict_proba` scores                                 | Designed for ranking candidate items per user. Supports hybrid user–item tabular pipelines.           |
+| **Outlier Detection**      | `IsolationForest`, `OneClassSVM`, `EllipticEnvelope`, or any sklearn-compatible anomaly model | Supports unsupervised anomaly detection in tabular data, including fraud, drift, and quality control. |
+
 
 ### 🧠 Causal Model Support
 
@@ -237,6 +240,27 @@ where:
 Once deployed, **MLServe.com automatically estimates treatment effects and determines the next best action** internally.
 At inference time, you only need to provide the input features — and MLServe.com will return both the treatment effects and the recommended action.
 
+### 🎯 Recommender Model Support
+
+MLServe.com supports deployment of **ranking and recommendation models** trained on user–item interactions.  
+These models typically return engagement likelihoods (`predict_proba`) for each user–item pair and can include both structured and text features.
+
+Use cases include:
+- Personalized product or content recommendations  
+- Ranking candidate items for a user  
+- Hybrid (tabular + text) recommenders with TF-IDF or embeddings  
+
+At inference, the user sends a JSON payload with one user profile and a list of candidate items; MLServe.com returns ranked recommendations.
+
+
+
+### ⚡ Outlier Detection Support
+
+MLServe.com natively supports **unsupervised anomaly detection models** such as `IsolationForest`, `OneClassSVM`, and other sklearn-compatible estimators.  
+These models can detect abnormal patterns in numeric or categorical tabular data — useful for:
+- Fraud and transaction monitoring  
+- Sensor or equipment fault detection  
+- Data drift and quality control  
 
 ---
 
