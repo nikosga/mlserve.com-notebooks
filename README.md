@@ -142,7 +142,7 @@ This will disable their access (soft delete).
 
 ---
 
-## 🧠 Model Serving & Deployment
+## 🧠 ML Model Serving & Deployment
 
 ### 🔹 Deploy a model
 
@@ -159,7 +159,8 @@ response = client.deploy_model(
     features=["feature1", "feature2"],
     background_df=df.sample(100)
 )
-print(response)
+deployment_id = resp["deployment_id"]
+final_status = client.wait_for_deployment(deployment_id)
 ```
 
 ### 🔹 Make predictions
@@ -204,7 +205,6 @@ print(models)
 latest = client.get_latest_version("my_model")
 print(latest)
 ```
-
 ---
 
 ## 🧩 Supported Model Types
@@ -342,6 +342,149 @@ Returns a dictionary of DataFrames for:
 
 ---
 
+## 🎯 Reinforcement Learning (Policy) Models (Experimental)
+
+MLServe.com makes it possible to build **self-learning decision systems** — without any ML training code.  
+These **online policy models** learn directly from inference-time feedback, so there’s **no need for separate training pipelines**, datasets, or feature stores.
+
+---
+
+### ⚡ Why Use Policy Models
+
+| Benefit                                | Description                                                                  |
+| -------------------------------------- | ---------------------------------------------------------------------------- |
+| 🧩 **No ML expertise needed**           | You don’t train or fine-tune anything — MLServe handles learning internally. |
+| 🔄 **No data drift or schema mismatch** | The same data you send at prediction time is used for learning.              |
+| 🚀 **Continuously improving**           | Models adapt to feedback automatically — no retraining required.             |
+| 💡 **Developer-first workflow**         | Just send inputs → get action → send feedback — that’s it.                   |
+
+---
+
+### ⚙️ Configure an RL Policy Model
+
+```python
+from mlserve import MLServeClient
+import numpy as np
+from tqdm import trange
+import matplotlib.pyplot as plt
+
+client = MLServeClient()
+
+# 1️⃣ Configure RL model (support for numerical-only at the moment)
+feature_contract = {
+    "features": [
+        {"name": "age", "type": "continuous"},
+        {"name": "income", "type": "continuous"},
+        {"name": "loyalty_score", "type": "continuous"}
+    ],
+    "actions": ["show_discount", "show_premium", "no_action"]
+}
+
+resp = client.configure_online_model(
+    name="promo-policy",
+    version="v5",
+    task_type="policy_next",
+    feature_contract=feature_contract
+)
+
+print("✅ RL Model configured:", resp)
+deployment_id = resp["deployment_id"]
+
+# 2️⃣ Wait for background deployment to finish
+final_status = client.wait_for_deployment(deployment_id)
+print("✅ Final deployment status:", final_status)
+```
+
+### 🔁 Simulate Online Learning
+
+Once deployed, your RL policy model can predict actions and receive feedback continuously:
+
+```python
+# --- Simulation Setup ---
+model_name = "promo-policy"
+model_version = "v5"
+BATCH_FEEDBACK_SIZE = 10
+n_steps = 500
+actions_map = {"show_discount": 0, "show_premium": 1, "no_action": 2}
+
+feedback_buffer, rewards, avg_rewards = [], [], []
+
+for t in trange(n_steps):
+    # 1️⃣ Simulate a user context
+    user_features = {
+        "age": np.random.randint(18, 65),
+        "income": np.random.uniform(20000, 100000),
+        "loyalty_score": np.random.uniform(0, 1)
+    }
+
+    # 2️⃣ Get next action from RL policy
+    pred = client.online_predict(model_name, model_version, inputs=[user_features])
+    result = pred["predictions"][0]
+    action_name = result["action"]
+    policy_id = result["policy_id"]
+
+    # 3️⃣ Simulate reward (example environment)
+    reward = np.random.choice([0, 1], p=[0.7, 0.3])
+
+    # 4️⃣ Add feedback to batch buffer
+    feedback_buffer.append({
+        "features": user_features,
+        "action": action_name,
+        "reward": reward,
+        "policy_id": policy_id
+    })
+
+    # 5️⃣ Send feedback in batches
+    if len(feedback_buffer) >= BATCH_FEEDBACK_SIZE or t == n_steps - 1:
+        client.online_feedback(model_name, model_version, feedback_buffer)
+        feedback_buffer.clear()
+
+    rewards.append(reward)
+    avg_rewards.append(np.mean(rewards[-50:]))
+
+# --- 🔹 Visualization ---
+plt.figure(figsize=(10, 5))
+plt.plot(avg_rewards, color="C0")
+plt.title("Online RL Policy: Average Reward Over Time")
+plt.xlabel("Step")
+plt.ylabel("Reward (avg last 50)")
+plt.grid(True)
+plt.show()
+```
+
+### 🧩 How It Works
+
+1. Model Configuration
+Define your feature space and actions using a JSON `feature_contract`.
+MLServe automatically initializes a multi-policy RL agent.
+
+2. Action Selection (`online_predict`)
+The model returns the next action given current user features, plus metadata:
+
+* `action`: selected action name
+* `policy_id`: policy index used
+* `mode`: `"explore"` or `"exploit"`
+* `epsilon`: current exploration rate
+
+3. Feedback Loop (`online_feedback`)
+After each action, send back a reward (e.g. conversion = 1, no conversion = 0).
+The RL agent updates its internal weights to improve over time.
+
+4. Continuous Learning
+Each call updates the model’s policy.
+
+### 📈 Typical Use Cases
+
+| Scenario                    | Description                                                    |
+| --------------------------- | -------------------------------------------------------------- |
+| **Marketing optimization**  | Test and adapt campaign strategies dynamically.                |
+| **Pricing decisions**       | Adjust discounts or promotions based on real-time performance. |
+| **Personalization**         | Learn user preferences across products, ads, or notifications. |
+| **Multi-policy evaluation** | Compare several policy networks simultaneously.                |
+
+
+---
+
 ## 🔐 Google OAuth Authentication (Optional)
 
 ```python
@@ -367,6 +510,8 @@ After the user grants access, MLServe.com will handle the token exchange.
 | `remove_team_member(user_id)`                 | Disable a user account                    |
 | `request_password_reset(email, new_password)` | Send password reset email                 |
 | `deploy_model(...)`                           | Deploy a trained ML model                 |
+| `configure_online_model(...)`                 | Deploy a RL agent                         |
+| `wait_for_deployment(...)`                    | Check deployment progress                 |
 | `predict(name, version, data)`                | Make predictions with a deployed model    |
 | `predict_weighted(name, data)`                | Weighted predictions across versions      |
 | `configure_abtest(name, weights)`             | Configure A/B test weights                |
@@ -375,7 +520,7 @@ After the user grants access, MLServe.com will handle the token exchange.
 | `google_login()`                              | Login with Google OAuth                   |
 | `get_online_metrics(name, version)`           | Retrieve recent performance metrics       |
 | `get_model_evolution(name)`                   | Retrieve performance evolution            |
-| `get_metrics(name, version, hours)`           | Fetch hourly metrics for a given model    |
+| `get_metrics(name, version, hours)`           | Fetch hourly metrics for a given ML model |
 | `get_data_quality(name, version)`.            | Retrieve data quality metrics             |
 
 ---
