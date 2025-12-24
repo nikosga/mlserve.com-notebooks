@@ -207,6 +207,103 @@ print(latest)
 ```
 ---
 
+## 🧊 Materialized Inference (NEW)
+
+Materialized inference supports a common production pattern where inference happens asynchronously (e.g., event-driven pipelines), and results are stored for fast retrieval by identifier.
+
+Instead of returning predictions directly, MLServe.com can store them keyed by `entity_id` (e.g., user_id, customer_id), allowing downstream systems to fetch predictions later without re-sending features.
+
+### ✅ Materialize predictions (store-by-entity)
+
+Use `materialize=True` to store predictions in the online store.
+
+**Important:** you must provide `entity_ids` aligned with `inputs`.
+
+```python
+payload = {
+    "inputs": [
+        {"feature1": 1.2, "feature2": 3.4},
+        {"feature1": 0.9, "feature2": 2.1}
+    ],
+    "entity_ids": ["user_123", "user_456"]
+}
+
+ack = client.predict(
+    name="my_model",
+    version="v1",
+    data=payload,
+    materialize=True
+)
+
+print(ack)
+# → {"materialized": true, "model": "my_model", "stored_at": "...", "keys": [...]}
+```
+
+The same is supported for weighted inference:
+
+```python
+ack = client.predict_weighted(
+    name="my_model",
+    data=payload,
+    materialize=True
+)
+```
+
+### ✅ Fetch materialized prediction later (NEW)
+
+Once stored, any downstream service can fetch the latest stored prediction for an entity:
+
+```python
+pred = client.fetch_materialized(
+    name="my_model",
+    entity_id="user_123",
+    max_age_seconds=300  # optional freshness constraint
+)
+
+print(pred)
+```
+
+If the prediction does not exist or is too old, the server may return 404 (or an error depending on configuration).
+
+---
+
+## 🔔 Webhooks for Materialized Inference (NEW)
+
+Webhooks allow downstream services (e.g., your backend) to get notified when predictions are ready — avoiding polling.
+
+Typical pipeline:
+
+1) Data/event triggers inference + materialization  
+2) MLServe.com stores predictions  
+3) MLServe.com sends webhook: `prediction.materialized`  
+4) Backend fetches with `fetch_materialized()` and serves the frontend
+
+### ✅ Register the webhook endpoint (MVP)
+
+```python
+client.set_webhook(
+    url="https://your-backend.com/mlserve/webhook",
+    secret="optional_shared_secret",
+    is_active=True
+)
+```
+
+When materialization completes, MLServe.com will POST a small payload like:
+
+```json
+{
+  "event": "prediction.materialized",
+  "model": "my_model",
+  "entity_id": "user_123",
+  "ts": "2025-12-25T10:12:33Z"
+}
+```
+
+> For MVP, delivery is best-effort. You can start with this and later add retries / delivery logs as needed.
+
+---
+
+
 ## 🧩 Supported Model Types
 
 MLServe.com currently supports deployment for models built using the following frameworks:
@@ -498,30 +595,32 @@ After the user grants access, MLServe.com will handle the token exchange.
 
 ## ⚡ SDK Reference
 
-| Method                                        | Description                               |
-| --------------------------------------------- | ----------------------------------------- |
-| `register(user_name, email, password)`        | Register a new account                    |
-| `login(email, password)`                      | Login and obtain an access token          |
-| `logout()`                                    | Logout the current session                |
-| `check_token()`                               | Verify token and return current user info |
-| `invite_user(email)`                          | Invite a new user to your team            |
-| `list_team()`                                 | List all users in the organization        |
-| `update_user_role(user_id, role)`             | Change user role (admin/user)             |
-| `remove_team_member(user_id)`                 | Disable a user account                    |
-| `request_password_reset(email, new_password)` | Send password reset email                 |
-| `deploy_model(...)`                           | Deploy a trained ML model                 |
-| `configure_online_model(...)`                 | Deploy a RL agent                         |
-| `wait_for_deployment(...)`                    | Check deployment progress                 |
-| `predict(name, version, data)`                | Make predictions with a deployed model    |
-| `predict_weighted(name, data)`                | Weighted predictions across versions      |
-| `configure_abtest(name, weights)`             | Configure A/B test weights                |
-| `list_models()`                               | List all deployed models                  |
-| `get_latest_version(model_name)`              | Get the latest deployed version           |
-| `google_login()`                              | Login with Google OAuth                   |
-| `get_online_metrics(name, version)`           | Retrieve recent performance metrics       |
-| `get_model_evolution(name)`                   | Retrieve performance evolution            |
-| `get_metrics(name, version, hours)`           | Fetch hourly metrics for a given ML model |
-| `get_data_quality(name, version)`.            | Retrieve data quality metrics             |
+| Method                                          | Description                                                     |
+| ----------------------------------------------- | --------------------------------------------------------------- |
+| `register(user_name, email, password)`          | Register a new account                                          |
+| `login(email, password)`                        | Login and obtain an access token                                |
+| `logout()`                                      | Logout the current session                                      |
+| `check_token()`                                 | Verify token and return current user info                       |
+| `invite_user(email)`                            | Invite a new user to your team                                  |
+| `list_team()`                                   | List all users in the organization                              |
+| `update_user_role(user_id, role)`               | Change user role (admin/user)                                   |
+| `remove_team_member(user_id)`                   | Disable a user account                                          |
+| `request_password_reset(email, new_password)`   | Send password reset email                                       |
+| `deploy_model(...)`                             | Deploy a trained ML model                                       |
+| `configure_online_model(...)`                   | Deploy a RL agent                                               |
+| `wait_for_deployment(...)`                      | Check deployment progress                                       |
+| `predict(name, version, data, materialize=...)` | Make predictions (or materialize outputs by entity_id)          |
+| `predict_weighted(name, data, materialize=...)` | Weighted predictions (or materialize outputs by entity_id)      |
+| `fetch_materialized(name, entity_id, ...)`      | Fetch a stored prediction by entity_id (materialized inference) |
+| `set_webhook(url, secret=None, is_active=True)` | Register/update webhook for materialization events (MVP)        |
+| `configure_abtest(name, weights)`               | Configure A/B test weights                                      |
+| `list_models()`                                 | List all deployed models                                        |
+| `get_latest_version(model_name)`                | Get the latest deployed version                                 |
+| `google_login()`                                | Login with Google OAuth                                         |
+| `get_online_metrics(name, version)`             | Retrieve recent performance metrics                             |
+| `get_model_evolution(name)`                     | Retrieve performance evolution                                  |
+| `get_metrics(name, version, hours)`             | Fetch hourly metrics for a given ML model                       |
+| `get_data_quality(name, version)`.              | Retrieve data quality metrics                                   |
 
 ---
 
@@ -557,12 +656,16 @@ print(preds)
 
 ---
 
-## 🔒 Data & Privacy Policy
+## 🔒 Data & Privacy Policy (Updated)
+
 **1 Data Processing and Storage**
 
 MLServe.com processes data transmitted through the SDK solely for the purpose of providing and improving its services, including model prediction, monitoring, and user management functionalities.
 
-MLServe.com does not permanently store user input data submitted for prediction. Such data may be temporarily cached (for up to five minutes) in an in-memory store (Redis) to optimize performance and prevent redundant processing. After this period, cached data are automatically deleted and are not recoverable.
+By default, MLServe.com does not permanently store user input data submitted for prediction. Such data may be temporarily cached (for up to five minutes) in an in-memory store (Redis) to optimize performance and prevent redundant processing.
+
+**Materialized inference exception:**  
+If users enable `materialize=True`, MLServe.com stores the **prediction output** (and optionally metadata such as timestamps and explanations) keyed by `entity_id` in an online store (e.g., Redis) with a configurable **time-to-live (TTL)**. Materialized outputs expire automatically after TTL and are not intended for permanent storage.
 
 **2 Request and Performance Logging**
 
@@ -575,54 +678,35 @@ If users provide feedback (e.g., true labels, performance scores, or reward valu
 **4 Security and Encryption**
 
 All communication between the SDK and the MLServe.com API occurs over encrypted HTTPS (TLS) connections.
-Requests are routed through a Cloudflare Tunnel to provide additional protection against unauthorized access, DDoS attacks, and network-level threats.
-
-User credentials are securely managed:
-
-* Passwords are encrypted at rest in the database using industry-standard hashing algorithms.
-
-* Access tokens are securely generated and verified during each authenticated request.
-
-* Administrative access to user or system data is restricted and logged.
 
 **5 Data Retention**
 
 MLServe.com retains only data necessary for:
+- Account and authentication management
+- Performance and usage analytics
+- Feedback analysis for model improvement
 
-* Account and authentication management;
-
-* Performance and usage analytics;
-
-* Feedback analysis for model improvement.
-
-All temporary or cache-based data are automatically removed after their operational purpose has expired.
+Materialized outputs (when enabled) expire automatically according to TTL.
 
 **6 User Responsibilities and Compliance**
 
 Users are responsible for ensuring that their use of MLServe.com complies with all applicable privacy and data protection regulations, including but not limited to GDPR, HIPAA, and relevant local laws.
-Users should avoid transmitting personally identifiable or sensitive data unless required and should ensure such data are anonymized wherever possible.
 
 **7 Liability and Disclaimer**
 
 MLServe.com employs reasonable technical and organizational safeguards to protect user data. However, no system can be guaranteed to be completely secure.
-By using the SDK and API, you acknowledge and accept that:
-
-* MLServe.com is not liable for any damages, data loss, or unauthorized access resulting from user misconfiguration or misuse of the SDK;
-
-* You are using the SDK and API at your own risk;
-
-* You remain solely responsible for the data you transmit through the platform.
 
 ---
 
 ## 💬 Support
 
-* 📧 Email: [support@mlserve.com](mailto:support@mlserve.com)
+- 📧 Email: [support@mlserve.com](mailto:support@mlserve.com)
+
 ---
 
 ## 🧾 License
 
-This SDK is licensed under the **Apache Software License**.
+This SDK is licensed under the **Apache Software License**.  
 © 2025 MLServe.com — All rights reserved.
 
 ---
